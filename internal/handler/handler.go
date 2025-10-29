@@ -11,12 +11,12 @@ import (
 )
 
 type EventHandler struct {
-	storage *service.Storage
+	svc *service.CalendarService
 }
 
 // NewEventHandler создаёт обработчик с бизнес-логикой
-func NewEventHandler(storage *service.Storage) *EventHandler {
-	return &EventHandler{storage: storage}
+func NewEventHandler(svc *service.CalendarService) *EventHandler {
+	return &EventHandler{svc: svc}
 }
 
 // CreateEvent — создание нового события
@@ -28,7 +28,7 @@ func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.storage.Create(e)
+	err := h.svc.CreateEvent(e)
 	if err != nil {
 		writeError(w, "Create error", http.StatusBadRequest)
 		return
@@ -46,7 +46,7 @@ func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.storage.Update(e)
+	err := h.svc.UpdateEvent(e)
 	if err != nil {
 		writeError(w, "Update error", http.StatusBadRequest)
 		return
@@ -60,7 +60,7 @@ func (h *EventHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, _ := strconv.Atoi(idStr)
 
-	err := h.storage.Delete(id)
+	err := h.svc.DeleteEvent(id)
 	if err != nil {
 		writeError(w, err.Error(), http.StatusServiceUnavailable)
 		return
@@ -103,11 +103,11 @@ func (h *EventHandler) eventsForRange(w http.ResponseWriter, r *http.Request, pe
 
 	switch period {
 	case "day":
-		events = h.storage.EventsForDay(userID, date)
+		events = h.svc.EventsForDay(userID, date)
 	case "week":
-		events = h.storage.EventsForWeek(userID, date)
+		events = h.svc.EventsForWeek(userID, date)
 	case "month":
-		events = h.storage.EventsForMonth(userID, date)
+		events = h.svc.EventsForMonth(userID, date)
 	}
 
 	writeJSON(w, events)

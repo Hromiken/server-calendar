@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"server-calendar/internal/entity"
@@ -16,17 +17,24 @@ var (
 
 // Storage — простое хранилище событий в памяти.
 type Storage struct {
+	mu   sync.RWMutex
 	data map[int]entity.Event
 }
 
 // NewStorage создаёт и возвращает новое пустое хранилище событий.
 func NewStorage() *Storage {
-	return &Storage{data: make(map[int]entity.Event)}
+	return &Storage{
+		data: make(map[int]entity.Event),
+	}
 }
 
 // Create добавляет новое событие в хранилище.
 func (s *Storage) Create(e entity.Event) error {
-	if _, ok := s.data[e.ID]; ok {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	_, ok := s.data[e.ID]
+	if ok {
 		return ErrAlreadyExist
 	}
 	s.data[e.ID] = e
@@ -35,7 +43,11 @@ func (s *Storage) Create(e entity.Event) error {
 
 // Update обновляет существующее событие.
 func (s *Storage) Update(e entity.Event) error {
-	if _, ok := s.data[e.ID]; !ok {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	_, ok := s.data[e.ID]
+	if !ok {
 		return ErrNotFound
 	}
 	s.data[e.ID] = e
@@ -44,7 +56,11 @@ func (s *Storage) Update(e entity.Event) error {
 
 // Delete удаляет событие по ID.
 func (s *Storage) Delete(id int) error {
-	if _, ok := s.data[id]; !ok {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	_, ok := s.data[id]
+	if !ok {
 		return ErrNotFound
 	}
 	delete(s.data, id)
@@ -53,26 +69,32 @@ func (s *Storage) Delete(id int) error {
 
 // EventsForDay возвращает события пользователя за день.
 func (s *Storage) EventsForDay(userID int, date time.Time) []entity.Event {
-	return s.filter(userID, date, date)
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.Filter(userID, date, date)
 }
 
 // EventsForWeek возвращает события пользователя за неделю.
 func (s *Storage) EventsForWeek(userID int, date time.Time) []entity.Event {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	end := date.AddDate(0, 0, 7)
-	return s.filter(userID, date, end)
+	return s.Filter(userID, date, end)
 }
 
 // EventsForMonth возвращает события пользователя за месяц.
 func (s *Storage) EventsForMonth(userID int, date time.Time) []entity.Event {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	end := date.AddDate(0, 1, 0)
-	return s.filter(userID, date, end)
+	return s.Filter(userID, date, end)
 }
 
-// filter — утилита для выборки событий по диапазону дат.
-func (s *Storage) filter(userID int, from, to time.Time) []entity.Event {
+// Filter утилита для выборки событий по диапазону дат
+func (s *Storage) Filter(userID int, from, to time.Time) []entity.Event {
 	var res []entity.Event
 	for _, e := range s.data {
-		if e.UserID == userID && (e.Date.Equal(from) || (e.Date.After(from) && e.Date.Before(to))) {
+		if e.UserID == userID && !e.Date.Before(from) && !e.Date.After(to) {
 			res = append(res, e)
 		}
 	}

@@ -7,9 +7,9 @@ import (
 )
 
 // NewRouter создаёт и настраивает HTTP-маршрутизатор.
-func NewRouter(storage *service.Storage) *http.ServeMux {
+func NewRouter(svc *service.CalendarService) *http.ServeMux {
 	mux := http.NewServeMux()
-	h := NewEventHandler(storage)
+	h := NewEventHandler(svc)
 
 	mux.HandleFunc("/create_event", h.CreateEvent)
 	mux.HandleFunc("/update_event", h.UpdateEvent)

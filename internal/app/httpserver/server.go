@@ -75,7 +75,8 @@ func (s *Server) Shutdown() error {
 
 	logrus.Infof("🛑 Shutting down HTTP server (timeout %v)...", s.shutdownTimeout)
 
-	if err := s.server.Shutdown(ctx); err != nil {
+	err := s.server.Shutdown(ctx)
+	if err != nil {
 		return err
 	}
 

@@ -25,11 +25,12 @@ func Run(path string) {
 	//logger
 	SetLogrus(config.Log)
 
-	// storage
+	// storage + service
 	storage := service.NewStorage()
+	svc := service.NewCalendarService(storage)
 
 	// router
-	mux := handler.NewRouter(storage)
+	mux := handler.NewRouter(svc)
 	muxWithLogs := LoggerMiddleware(mux)
 
 	//server
@@ -47,8 +48,7 @@ func Run(path string) {
 	select {
 	case sig := <-quit:
 		logrus.Infof("Received signal: %v", sig)
-		errShutdown := srv.Shutdown()
-		if errShutdown != nil {
+		if errShutdown := srv.Shutdown(); err != nil {
 			logrus.Errorf("Failed to shutdown server: %v", errShutdown)
 		}
 	case errNotify := <-srv.Notify():
