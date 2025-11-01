@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"server-calendar/internal/storage"
 	"syscall"
 	"time"
 
@@ -26,7 +27,7 @@ func Run(path string) {
 	SetLogrus(config.Log)
 
 	// storage + service
-	storage := service.NewStorage()
+	storage := storage.NewStorage()
 	svc := service.NewCalendarService(storage)
 
 	// router
@@ -48,8 +49,9 @@ func Run(path string) {
 	select {
 	case sig := <-quit:
 		logrus.Infof("Received signal: %v", sig)
-		if errShutdown := srv.Shutdown(); err != nil {
-			logrus.Errorf("Failed to shutdown server: %v", errShutdown)
+		e := srv.Shutdown()
+		if e != nil {
+			logrus.Errorf("Failed to shutdown server: %v", e)
 		}
 	case errNotify := <-srv.Notify():
 		logrus.Errorf("Server exited with error: %v", errNotify)

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -8,38 +9,61 @@ import (
 )
 
 type CalendarService struct {
-	repo Repository
+	repo repository
 }
 
-func NewCalendarService(repo Repository) *CalendarService {
+type repository interface {
+	CreateEvent(event entity.Event) error
+	UpdateEvent(event entity.Event) error
+	DeleteEvent(event entity.Event) error
+	GetEventsByDateRange(userID entity.UserID, from, to time.Time) ([]entity.Event, error)
+}
+
+func NewCalendarService(repo repository) *CalendarService {
 	return &CalendarService{repo: repo}
 }
 
-func (s *CalendarService) CreateEvent(e entity.Event) error {
+func (s *CalendarService) CreateEvent(_ context.Context, e entity.Event) error {
 	if e.Date.Before(time.Now()) {
 		return errors.New("cannot create event in the past")
 	}
-	return s.repo.Create(e)
+	return s.repo.CreateEvent(e)
 }
 
-func (s *CalendarService) UpdateEvent(e entity.Event) error {
-	return s.repo.Update(e)
+func (s *CalendarService) UpdateEvent(_ context.Context, e entity.Event) error {
+	if e.Date.Before(time.Now()) {
+		return errors.New("cannot update event in the past")
+	}
+	return s.repo.UpdateEvent(e)
 }
 
-func (s *CalendarService) DeleteEvent(id int) error {
-	return s.repo.Delete(id)
+func (s *CalendarService) DeleteEvent(_ context.Context, id entity.Event) error {
+	return s.repo.DeleteEvent(id)
 }
 
-func (s *CalendarService) EventsForDay(userID int, date time.Time) []entity.Event {
-	return s.repo.Filter(userID, date, date)
+func (s *CalendarService) EventsForDay(_ context.Context, userID entity.UserID) ([]entity.Event, error) {
+	from := time.Now()
+	to := from.
+		AddDate(0, 0, 1).
+		Truncate(24 * time.Hour)
+
+	return s.repo.GetEventsByDateRange(userID, from, to)
 }
 
-func (s *CalendarService) EventsForWeek(userID int, date time.Time) []entity.Event {
-	end := date.AddDate(0, 0, 7)
-	return s.repo.Filter(userID, date, end)
+func (s *CalendarService) EventsForWeek(_ context.Context, userID entity.UserID) ([]entity.Event, error) {
+	from := time.Now()
+	to := from.
+		AddDate(0, 0, 7).
+		Truncate(24 * time.Hour)
+	return s.repo.GetEventsByDateRange(userID, from, to)
 }
 
-func (s *CalendarService) EventsForMonth(userID int, date time.Time) []entity.Event {
-	end := date.AddDate(0, 1, 0)
-	return s.repo.Filter(userID, date, end)
+func (s *CalendarService) EventsForMonth(_ context.Context, userID entity.UserID) ([]entity.Event, error) {
+	from := time.Now()
+	to := from.
+		AddDate(0, 1, 0).
+		Truncate(24 * time.Hour)
+	return s.repo.GetEventsByDateRange(userID, from, to)
 }
+
+// 1) шардирование ,2) shutdown, 3) map в map

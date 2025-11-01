@@ -47,16 +47,15 @@ func New(handler http.Handler, opts ...OptionServer) *Server {
 	return s
 }
 
-// start — запускает сервер в отдельной горутине
 func (s *Server) start() {
 	go func() {
-		logrus.Infof("🚀 Starting HTTP server on %s", s.server.Addr)
+		logrus.Infof("Starting HTTP server on %s", s.server.Addr)
 		err := s.server.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			s.notify <- err
-			logrus.Errorf("❌ Server stopped with error: %v", err)
+			logrus.Errorf("Server stopped with error: %v", err)
 		} else {
-			logrus.Info("🟢 HTTP server stopped gracefully")
+			logrus.Info("HTTP server stopped gracefully")
 		}
 		close(s.notify)
 	}()
@@ -73,13 +72,13 @@ func (s *Server) Shutdown() error {
 	ctx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
 	defer cancel()
 
-	logrus.Infof("🛑 Shutting down HTTP server (timeout %v)...", s.shutdownTimeout)
+	logrus.Infof("Shutting down HTTP server (timeout %v)...", s.shutdownTimeout)
 
 	err := s.server.Shutdown(ctx)
 	if err != nil {
 		return err
 	}
 
-	logrus.Info("✅ Server shutdown complete")
+	logrus.Info("Server shutdown complete")
 	return nil
 }

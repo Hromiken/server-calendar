@@ -1,34 +1,46 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"strconv"
-	"time"
-
 	"server-calendar/internal/entity"
 	"server-calendar/internal/service"
+	"strconv"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type EventHandler struct {
-	svc *service.CalendarService
+	svc       *service.CalendarService
+	validator *validator.Validate
 }
 
 // NewEventHandler создаёт обработчик с бизнес-логикой
 func NewEventHandler(svc *service.CalendarService) *EventHandler {
-	return &EventHandler{svc: svc}
+	return &EventHandler{
+		svc:       svc,
+		validator: validator.New(),
+	}
 }
 
 // CreateEvent — создание нового события
 func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	var e entity.Event
-	errDecoder := json.NewDecoder(r.Body).Decode(&e)
-	if errDecoder != nil {
+	err := json.NewDecoder(r.Body).Decode(&e)
+	if err != nil {
 		writeError(w, "Json invalid", http.StatusBadRequest)
 		return
 	}
 
-	err := h.svc.CreateEvent(e)
+	err = h.validator.Struct(&e)
+	if err != nil {
+		writeError(w, fmt.Sprintf("Validation error: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	err = h.svc.CreateEvent(context.Background(), e)
 	if err != nil {
 		writeError(w, "Create error", http.StatusBadRequest)
 		return
@@ -40,13 +52,20 @@ func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 // UpdateEvent — обновление события
 func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	var e entity.Event
-	errDecoder := json.NewDecoder(r.Body).Decode(&e)
-	if errDecoder != nil {
+
+	err := json.NewDecoder(r.Body).Decode(&e)
+	if err != nil {
 		writeError(w, "Json invalid", http.StatusBadRequest)
 		return
 	}
 
-	err := h.svc.UpdateEvent(e)
+	err = h.validator.Struct(&e)
+	if err != nil {
+		writeError(w, fmt.Sprintf("Validation error: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	err = h.svc.UpdateEvent(context.Background(), e)
 	if err != nil {
 		writeError(w, "Update error", http.StatusBadRequest)
 		return
@@ -57,59 +76,70 @@ func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 
 // DeleteEvent — удаление события по id
 func (h *EventHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	id, _ := strconv.Atoi(idStr)
+	var e entity.Event
 
-	err := h.svc.DeleteEvent(id)
+	err := json.NewDecoder(r.Body).Decode(&e)
+	if err != nil {
+		writeError(w, "Json invalid", http.StatusBadRequest)
+		return
+	}
+
+	err = h.svc.DeleteEvent(context.Background(), e)
 	if err != nil {
 		writeError(w, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
 
+	err = h.validator.Struct(&e)
+	if err != nil {
+		writeError(w, fmt.Sprintf("Validation error: %v", err), http.StatusBadRequest)
+		return
+	}
 	writeJSON(w, map[string]string{"result": "deleted"})
 }
 
 // EventsForDay — события за день
 func (h *EventHandler) EventsForDay(w http.ResponseWriter, r *http.Request) {
-	h.eventsForRange(w, r, "day")
+	userID, err := strconv.Atoi(r.URL.Query().Get("id"))
+	if err != nil {
+		writeError(w, "Invalid user id", http.StatusBadRequest)
+		return
+	}
+	events, err := h.svc.EventsForDay(context.Background(), entity.UserID(userID))
+	if err != nil {
+		writeError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	writeJSON(w, events)
 }
 
 // EventsForWeek — события за неделю
 func (h *EventHandler) EventsForWeek(w http.ResponseWriter, r *http.Request) {
-	h.eventsForRange(w, r, "week")
+	userID, err := strconv.Atoi(r.URL.Query().Get("id"))
+	if err != nil {
+		writeError(w, "Invalid user id", http.StatusBadRequest)
+		return
+	}
+	events, err := h.svc.EventsForWeek(context.Background(), entity.UserID(userID))
+	if err != nil {
+		writeError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	writeJSON(w, events)
 }
 
 // EventsForMonth — события за месяц
 func (h *EventHandler) EventsForMonth(w http.ResponseWriter, r *http.Request) {
-	h.eventsForRange(w, r, "month")
-}
-
-// универсальный метод для выборки по диапазону
-func (h *EventHandler) eventsForRange(w http.ResponseWriter, r *http.Request, period string) {
-	userID, errorAtoi := strconv.Atoi(r.URL.Query().Get("user_id"))
-	if errorAtoi != nil {
-		writeError(w, errorAtoi.Error(), http.StatusBadRequest)
-		return
-	}
-	dateStr := r.URL.Query().Get("date")
-
-	date, err := time.Parse("2006-01-02", dateStr)
+	userID, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil {
-		writeError(w, "invalid date", http.StatusBadRequest)
+		writeError(w, "Invalid user id", http.StatusBadRequest)
 		return
 	}
-
-	var events []entity.Event
-
-	switch period {
-	case "day":
-		events = h.svc.EventsForDay(userID, date)
-	case "week":
-		events = h.svc.EventsForWeek(userID, date)
-	case "month":
-		events = h.svc.EventsForMonth(userID, date)
+	events, err := h.svc.EventsForMonth(context.Background(), entity.UserID(userID))
+	if err != nil {
+		writeError(w, err.Error(), http.StatusBadRequest)
+		return
 	}
-
 	writeJSON(w, events)
 }
 
