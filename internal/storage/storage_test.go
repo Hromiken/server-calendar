@@ -3,10 +3,9 @@ package storage_test
 import (
 	"errors"
 	"server-calendar/internal/storage"
+	"server-calendar/internal/storage/entity"
 	"testing"
 	"time"
-
-	"server-calendar/internal/entity"
 )
 
 func TestStorage_CreateEvent(t *testing.T) {

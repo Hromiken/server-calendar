@@ -2,10 +2,9 @@ package storage
 
 import (
 	"errors"
+	"server-calendar/internal/storage/entity"
 	"sync"
 	"time"
-
-	"server-calendar/internal/entity"
 )
 
 var (

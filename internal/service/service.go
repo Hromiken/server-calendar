@@ -3,9 +3,8 @@ package service
 import (
 	"context"
 	"errors"
+	"server-calendar/internal/storage/entity"
 	"time"
-
-	"server-calendar/internal/entity"
 )
 
 type CalendarService struct {
@@ -65,5 +64,3 @@ func (s *CalendarService) EventsForMonth(_ context.Context, userID entity.UserID
 		Truncate(24 * time.Hour)
 	return s.repo.GetEventsByDateRange(userID, from, to)
 }
-
-// 1) шардирование ,2) shutdown, 3) map в map

@@ -17,24 +17,19 @@ import (
 )
 
 func Run(path string) {
-	// config
 	config, err := cfg.NewConfig(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//logger
 	SetLogrus(config.Log)
 
-	// storage + service
-	storage := storage.NewStorage()
-	svc := service.NewCalendarService(storage)
+	stg := storage.NewStorage()
+	svc := service.NewCalendarService(stg)
 
-	// router
 	mux := handler.NewRouter(svc)
 	muxWithLogs := LoggerMiddleware(mux)
 
-	//server
 	srv := httpserver.New(
 		muxWithLogs,
 		httpserver.Port(config.Port),
@@ -42,7 +37,7 @@ func Run(path string) {
 		httpserver.WriteTimeout(10*time.Second),
 		httpserver.ShutdownTimeout(5*time.Second),
 	)
-	//graceful shutdown
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 

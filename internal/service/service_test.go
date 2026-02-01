@@ -3,10 +3,10 @@ package service_test
 import (
 	"context"
 	"server-calendar/internal/storage"
+	"server-calendar/internal/storage/entity"
 	"testing"
 	"time"
 
-	"server-calendar/internal/entity"
 	"server-calendar/internal/service"
 )
 

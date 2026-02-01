@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"server-calendar/internal/entity"
 	"server-calendar/internal/service"
+	"server-calendar/internal/storage/entity"
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
