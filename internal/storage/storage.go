@@ -96,13 +96,39 @@ func (es *EventStorage) GetEventsByDateRange(userID entity.UserID, from, to time
 	return out, nil
 }
 
+func (es *EventStorage) ArchiveOldEvents(cutoff time.Time) int {
+	es.mu.RLock()
+	defer es.mu.RUnlock()
+
+	archived := 0
+
+	for _, ue := range es.userEvents {
+		ue.mu.Lock()
+		for id, ev := range ue.events {
+			if ev.Archived {
+				continue
+			}
+			if ev.Date.Before(cutoff) {
+				ev.Archived = true
+				ue.events[id] = ev
+				archived++
+			}
+		}
+		ue.mu.Unlock()
+	}
+
+	return archived
+}
+
 func (u *userEvent) filter(from, to time.Time) []entity.Event {
 	u.mu.RLock()
 	defer u.mu.RUnlock()
 
 	res := make([]entity.Event, 0, len(u.events)/4)
 	for _, e := range u.events {
-
+		if e.Archived {
+			continue
+		}
 		if !e.Date.Before(from) && !e.Date.After(to) {
 			res = append(res, e)
 		}

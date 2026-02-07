@@ -84,17 +84,18 @@ func (h *EventHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = h.validator.Struct(&e)
+	if err != nil {
+		writeError(w, fmt.Sprintf("Validation error: %v", err), http.StatusBadRequest)
+		return
+	}
+
 	err = h.svc.DeleteEvent(context.Background(), e)
 	if err != nil {
 		writeError(w, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
 
-	err = h.validator.Struct(&e)
-	if err != nil {
-		writeError(w, fmt.Sprintf("Validation error: %v", err), http.StatusBadRequest)
-		return
-	}
 	writeJSON(w, map[string]string{"result": "deleted"})
 }
 

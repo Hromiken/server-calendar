@@ -15,8 +15,8 @@ func TestStorage_CreateEvent(t *testing.T) {
 	ev := entity.Event{
 		EventID: 1,
 		UserID:  10,
-		Date:    &now,
-		Title:   &str,
+		Date:    now,
+		Title:   str,
 	}
 
 	err := st.CreateEvent(ev)
@@ -37,7 +37,7 @@ func TestStorage_GetEvent(t *testing.T) {
 	ev := entity.Event{
 		EventID: 1,
 		UserID:  5,
-		Date:    &now,
+		Date:    now,
 	}
 
 	_ = st.CreateEvent(ev)
@@ -59,7 +59,7 @@ func TestStorage_GetEventsByDateRange(t *testing.T) {
 	ev := entity.Event{
 		EventID: 1,
 		UserID:  77,
-		Date:    &now,
+		Date:    now,
 	}
 
 	_ = st.CreateEvent(ev)

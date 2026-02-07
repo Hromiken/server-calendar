@@ -10,8 +10,10 @@ type EventID int
 
 // Event описывает событие календаря.
 type Event struct {
-	EventID EventID    `json:"event_id" validate:"required"`
-	UserID  UserID     `json:"user_id" validate:"required"`
-	Date    *time.Time `json:"date" validate:"omitempty"`
-	Title   *string    `json:"title" validate:"omitempty"`
+	EventID  EventID    `json:"event_id"`
+	UserID   UserID     `json:"user_id"`
+	Date     time.Time  `json:"date"`
+	Title    string     `json:"title"`
+	RemindAt *time.Time `json:"remind_at,omitempty"`
+	Archived bool       `json:"-"`
 }

@@ -21,7 +21,7 @@ func TestCalendarService_CreateEvent(t *testing.T) {
 	ev := entity.Event{
 		EventID: 1,
 		UserID:  42,
-		Date:    &date,
+		Date:    date,
 	}
 
 	err := svc.CreateEvent(context.Background(), ev)
@@ -45,7 +45,7 @@ func TestCalendarService_EventsForDay(t *testing.T) {
 	ev := entity.Event{
 		EventID: 3,
 		UserID:  1,
-		Date:    &now,
+		Date:    now,
 	}
 	_ = repo.CreateEvent(ev)
 

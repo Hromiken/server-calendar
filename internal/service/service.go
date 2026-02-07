@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"server-calendar/internal/storage/entity"
+	"server-calendar/internal/worker"
 	"time"
 )
 
 type CalendarService struct {
-	repo repository
+	repo     repository
+	reminder *worker.ReminderWorker
 }
 
 type repository interface {
@@ -18,15 +20,32 @@ type repository interface {
 	GetEventsByDateRange(userID entity.UserID, from, to time.Time) ([]entity.Event, error)
 }
 
-func NewCalendarService(repo repository) *CalendarService {
-	return &CalendarService{repo: repo}
+func NewCalendarService(repo repository, rw *worker.ReminderWorker) *CalendarService {
+	return &CalendarService{
+		repo:     repo,
+		reminder: rw,
+	}
 }
 
 func (s *CalendarService) CreateEvent(_ context.Context, e entity.Event) error {
 	if e.Date.Before(time.Now()) {
 		return errors.New("cannot create event in the past")
 	}
-	return s.repo.CreateEvent(e)
+
+	if err := s.repo.CreateEvent(e); err != nil {
+		return err
+	}
+
+	if e.RemindAt != nil {
+		s.reminder.Add(worker.Reminder{
+			EventID:  int(e.EventID),
+			UserID:   int(e.UserID),
+			Title:    e.Title,
+			RemindAt: *e.RemindAt,
+		})
+	}
+
+	return nil
 }
 
 func (s *CalendarService) UpdateEvent(_ context.Context, e entity.Event) error {
