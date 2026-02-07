@@ -4,6 +4,7 @@ import (
 	"context"
 	"server-calendar/internal/storage"
 	"server-calendar/internal/storage/entity"
+	"server-calendar/internal/worker"
 	"testing"
 	"time"
 
@@ -12,7 +13,8 @@ import (
 
 func TestCalendarService_CreateEvent(t *testing.T) {
 	repo := storage.NewStorage()
-	svc := service.NewCalendarService(repo)
+	wrk := worker.NewReminderWorker(100)
+	svc := service.NewCalendarService(repo, wrk)
 
 	date := time.Now().
 		AddDate(0, 0, 1).
@@ -36,7 +38,8 @@ func TestCalendarService_CreateEvent(t *testing.T) {
 
 func TestCalendarService_EventsForDay(t *testing.T) {
 	repo := storage.NewStorage()
-	svc := service.NewCalendarService(repo)
+	wrk := worker.NewReminderWorker(100)
+	svc := service.NewCalendarService(repo, wrk)
 
 	now := time.Now().
 		AddDate(0, 0, 1).
